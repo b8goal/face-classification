@@ -1,3 +1,6 @@
+# Classification for Asian Face
+I modified the code to distinguish Asian and Western faces from the vggface2 dataset.
+
 # Gender and Race Classification with Face Images
 
 Let's train a simple face attribute classification model! The dataset we are going to use contains 73 different face attributes, but we are only going to focus on gender and race. Here are some sample results of the trained model. (For now, the dataset I used has only "White," "Black," and "Asian" faces. I will try to add more races in future)
