@@ -1,5 +1,6 @@
 from __future__ import print_function
 import argparse
+import subprocess as sb
 import os
 import face_recognition
 import numpy as np
@@ -80,23 +81,37 @@ def main():
         clf, labels = pickle.load(f)
 
     print("classifying images in {}".format(input_dir))
-    for fname in tqdm(os.listdir(input_dir)):
-        img_path = os.path.join(input_dir, fname)
-        try:
-            pred, locs = predict_one_image(img_path, clf, labels)
-        except:
-            print("Skipping {}".format(img_path))
-        if not locs:
-            continue
-        locs = \
-            pd.DataFrame(locs, columns = ['top', 'right', 'bottom', 'left'])
-        df = pd.concat([pred, locs], axis=1)
-        img = draw_attributes(img_path, df)
-        cv2.imwrite(os.path.join(output_dir, fname), img)
-        os.path.splitext(fname)[0]
-        output_csvpath = os.path.join(output_dir,
-                                      os.path.splitext(fname)[0] + '.csv')
-        df.to_csv(output_csvpath, index = False)
+    rd = {}
+    for pid in tqdm(os.listdir(input_dir)):
+        pdir = os.path.join(input_dir, pid)
+        pdir_out = os.path.join(output_dir, pid)
+        if not os.path.isdir(pdir_out):
+            os.mkdir(pdir_out)
+        non_asian_cnt = 0
+        for fname in tqdm(os.listdir(pdir)):
+            img_path = os.path.join(pdir, fname)
+            try:
+                pred, locs = predict_one_image(img_path, clf, labels)
+            except:
+                print("Skipping {}".format(img_path))
+            if not locs:
+                continue
+            locs = \
+                pd.DataFrame(locs, columns = ['top', 'right', 'bottom', 'left'])
+            df = pd.concat([pred, locs], axis=1)
+            
+            td = {}
+            if len(df)==1 and df.iloc[0,1]>df.iloc[0,2] and df.iloc[0,1]>df.iloc[0,3]:
+                sb.call(['mv', img_path, os.path.join(pdir_out, fname)])
+                for c in df.columns:
+                    td[c] = df[c][0]
+                rd['/'.join([pid,fname])] = td
+            else: 
+                non_asian_cnt += 1
+            if non_asian_cnt>10: break
+            
+    with open(os.path.join(output_dir,'pdata.json'), 'w') as res:
+        json.dump(rd, res)
 
 if __name__ == "__main__":
     main()
